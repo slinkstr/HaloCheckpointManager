@@ -14390,4 +14390,71 @@
 		</Version>
 
 	</VersionedEntry>
+
+	<!--#region FeatureSync (MCC exe chat plumbing; RE: feature-sync/RE_CHAT.md)-->
+
+	<!--global slot holding the chat manager singleton ptr-->
+	<VersionedEntry Name="chatManagerGlobal" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x4000C78</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--post-verify wire send fn: (mgr, netId, channel, std::string*, flag)-->
+	<VersionedEntry Name="chatSendFunction" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x25B684</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--inbound chat state-change dispatcher (suppression hook point)-->
+	<VersionedEntry Name="chatRecvFunction" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x2613D0</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--Party pump entry (send-drain + scheduler tick hook point)-->
+	<VersionedEntry Name="chatPumpFunction" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x246070</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--inbound verified-text extraction return: after FUN_14025B170 fills the
+		out std::string at [rbp+0x70] in the record-loop frame-->
+	<VersionedEntry Name="chatExtractReturn" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x260D88</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--second inbound extraction (chat history path), out string at [rbp+0x07]-->
+	<VersionedEntry Name="chatExtractReturn2" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x2713DD</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
+	<!--outbound (b684) extraction for the local history echo, out string at [rbp-0x38]-->
+	<VersionedEntry Name="chatExtractReturn3" Type="MultilevelPointer::ExeOffset">
+		<Version Version="1.3528.0.0" ProcessType="Steam">
+			<Offsets>
+				<Offset>0x25B71F</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+	<!--#endregion FeatureSync-->
 </root>

@@ -4,9 +4,11 @@
 
 // Adapted from scales' MCCTAS https://github.com/Scaless/HaloTAS/blob/master/HaloTAS/libhalotas/dll_cache.cpp
 std::unordered_map<std::wstring, MODULEINFO> ModuleCache::mCache = {};
+std::shared_mutex ModuleCache::mCacheMutex = {};
 
 void ModuleCache::initialize()
 {
+	std::unique_lock lock(mCacheMutex);
 
 	// Clear the cache
 	ModuleCache::mCache.clear();
@@ -35,6 +37,7 @@ void ModuleCache::initialize()
 
 bool ModuleCache::addModuleToCache(const std::wstring& moduleName, HMODULE moduleHandle)
 {
+	std::unique_lock lock(mCacheMutex);
 
 	// check if it's in the cache already
 	if (auto it = ModuleCache::mCache.find(moduleName); it != ModuleCache::mCache.end()) {
@@ -57,6 +60,8 @@ bool ModuleCache::addModuleToCache(const std::wstring& moduleName, HMODULE modul
 
 bool ModuleCache::removeModuleFromCache(const std::wstring& moduleName)
 {
+	std::unique_lock lock(mCacheMutex);
+
 	if (auto it = ModuleCache::mCache.find(moduleName); it != ModuleCache::mCache.end()) {
 		ModuleCache::mCache.erase(it);
 		return true;
@@ -67,6 +72,8 @@ bool ModuleCache::removeModuleFromCache(const std::wstring& moduleName)
 
 std::optional<HMODULE> ModuleCache::getModuleHandle(const std::wstring& moduleName)
 {
+	std::shared_lock lock(mCacheMutex);
+
 	if (auto it = ModuleCache::mCache.find(moduleName); it != ModuleCache::mCache.end()) {
 		return (HMODULE)it->second.lpBaseOfDll;
 	}
@@ -76,6 +83,8 @@ std::optional<HMODULE> ModuleCache::getModuleHandle(const std::wstring& moduleNa
 
 std::optional<MODULEINFO> ModuleCache::getModuleInfo(const std::wstring& moduleName)
 {
+	std::shared_lock lock(mCacheMutex);
+
 	if (auto it = ModuleCache::mCache.find(moduleName); it != ModuleCache::mCache.end()) {
 		return it->second;
 	}
@@ -85,6 +94,8 @@ std::optional<MODULEINFO> ModuleCache::getModuleInfo(const std::wstring& moduleN
 
 bool ModuleCache::isModuleInCache(const std::wstring& moduleName)
 {
+	std::shared_lock lock(mCacheMutex);
+
 	auto it = ModuleCache::mCache.find(moduleName);
 	return it != ModuleCache::mCache.end();
 

@@ -25,6 +25,7 @@
 #include <chrono>
 #include <filesystem>
 #include <mutex>
+#include <shared_mutex>
 #include <thread>
 //#include <format>
 #include <string>
