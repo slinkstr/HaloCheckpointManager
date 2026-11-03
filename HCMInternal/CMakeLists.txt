@@ -25,6 +25,7 @@ add_library(HCMInternal SHARED
     DynamicStructFactory.cpp
     EditPlayerViewAngle.cpp
     EditPlayerViewAngleID.cpp
+    FeatureSync.cpp
     ForceFutureCheckpoint.cpp
     ForceLaunch.cpp
     ForceTeleport.cpp

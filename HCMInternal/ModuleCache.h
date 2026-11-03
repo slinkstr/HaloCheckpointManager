@@ -12,6 +12,10 @@ private:
 	// DLL Name, Base Address
 	static std::unordered_map<std::wstring, MODULEINFO> mCache;
 
+	// mCache is read on hot paths (MultilevelPointer::resolve) while
+	// LoadLibrary/FreeLibrary hooks mutate it from other threads.
+	static std::shared_mutex mCacheMutex;
+
 
 
 	// non-instanced static class

@@ -33,6 +33,7 @@
 #include "ControlServiceContainer.h"
 #include "Lapua.h"
 #include "OBSBypassManager.h"
+#include "FeatureSync.h"
 #include "ModalDialogFactory.h"
 #include "HideWatermarkManager.h"
 #include "GetHCMVersion.h"
@@ -167,6 +168,11 @@ public:
             auto lap = std::make_shared<Lapua>(); PLOGV << "lapua init";
             auto obsBypass = std::make_shared<OBSBypassManager>(d3d, settings->OBSBypassToggle, exp); PLOGV << "obsBypass init";
             auto hideWatermark = std::make_shared<HideWatermarkManager>(settings->hideWatermark, exp); PLOGV << "hideWatermark init";
+
+            std::shared_ptr<FeatureSync> featureSync;
+            try { featureSync = std::make_shared<FeatureSync>(ptrStore, imes, exp); }
+            catch (HCMInitException& ex) { imes->addMessage(std::format("FeatureSync disabled: {}", ex.what())); PLOG_ERROR << "FeatureSync init failed: " << ex.what(); }
+
             d3d->beginHook();
 
             PLOG_INFO << "All services succesfully initialized! Entering main loop";
