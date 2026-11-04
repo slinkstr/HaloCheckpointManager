@@ -128,7 +128,7 @@ private:
 	//enum class tagBlockDataFields { entryCount, offset };
 	//std::shared_ptr<DynamicStruct<tagBlockDataFields>> tagBlockDataStruct;
 
-	enum class triggerDataFields { forward, up, position, extents, triggerType, sectorPointsTagBlock };
+	enum class triggerDataFields { forward, up, position, extents, zSink, triggerType, sectorPointsTagBlock };
 	std::shared_ptr<StrideableDynamicStruct<triggerDataFields>> triggerDataStruct;
 
 	enum class sectorPointsDataFields { position };
@@ -254,12 +254,24 @@ public:
 				auto* pExtents = triggerDataStruct->field<SimpleMath::Vector3>(triggerDataFields::extents);
 				if (IsBadReadPtr(pExtents, sizeof(SimpleMath::Vector3))) throw HCMRuntimeException(std::format("Bad read address for pExtents at {}", (uintptr_t)pExtents));
 
+				auto* pZSink = triggerDataStruct->field<float>(triggerDataFields::zSink);
+				if (IsBadReadPtr(pZSink, sizeof(float))) throw HCMRuntimeException(std::format("Bad read address for pZSink at {}", (uintptr_t)pZSink));
+
+				if (sectorPoints.empty()) continue;
+
+				auto [minZPoint, maxZPoint] = std::ranges::minmax(sectorPoints, {}, &SimpleMath::Vector3::z);
+
+				float bottomZ = minZPoint.z - *pZSink;
+				float topZ = maxZPoint.z + pExtents->z;
+
 				PLOG_DEBUG << "read sector Trigger Data at index " << triggerIndex << ", location " << std::hex << triggerDataStruct->currentBaseAddress << ":";
 				PLOG_DEBUG << "Name: " << name;
 				PLOG_DEBUG << "SectorPointCount: " << sectorPoints.size();
 				for (auto& p : sectorPoints) { PLOG_DEBUG << "sectorPointPosition: " << p; }
 				PLOG_DEBUG << "Exte: " << *pExtents;
-				PLOG_DEBUG << "Heig: " << pExtents->z;
+				PLOG_DEBUG << "ZSink: " << *pZSink;
+				PLOG_DEBUG << "BottomZ: " << bottomZ;
+				PLOG_DEBUG << "TopZ: " << topZ;
 
 				triggerDataAllLocked->emplace(triggerDataStruct->currentBaseAddress,
 					std::move(TriggerDataFactory::makeSector(
@@ -267,7 +279,8 @@ public:
 						triggerIndex,
 						triggerIsBSPLambda(name),
 						sectorPoints,
-						pExtents->z
+						bottomZ,
+						topZ
 					)));
 			}
 		}

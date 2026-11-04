@@ -133,16 +133,18 @@ TriggerModel::TriggerModel(std::string triggerName, SimpleMath::Vector3 position
 
 
 // sector constructor
-TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vector3> sectorPointsBottom, float height)
+TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vector3> sectorPointsBottom, float bottomZ, float topZ)
 	: label(triggerName),
 	m_isSectorType(true)
 {
 
 	size_t sectorPointCount = sectorPointsBottom.size();
 
-	// vertices consists of sectorPoints, and then sectorPoints again but with z += height.
+	// sector volumes are right prisms: the footprint is the polygon of sector point x/y's,
+	// with flat caps at bottomZ (lowest point z - z sink) and topZ (highest point z + extents z).
+	std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [bottomZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, bottomZ }; });
 	std::vector<SimpleMath::Vector3> sectorPointsTop = sectorPointsBottom; // copy
-	std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [height](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, v.z + height }; }); // add height
+	std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [topZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, topZ }; });
 
 	for (auto& sp : sectorPointsBottom)
 	{
@@ -225,7 +227,7 @@ TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vect
 
 	// setup center/corner
 	this->centerPosition = box.Center;
-	this->cornerPosition = sectorPointsBottom.at(0);
+	this->cornerPosition = sectorPointsTop.at(0);
 }
 
 // let's us input our SimpleMath Vec3's directly into the 2d earcut algo
