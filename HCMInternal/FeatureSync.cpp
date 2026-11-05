@@ -4,11 +4,14 @@
 #include "MultilevelPointer.h"
 
 // PoC protocol: HCMF|v1|s<tag8>|q<seq>|t<tick>|<CMD>|<args..>
-//   HI            presence beacon (every 45 ticks while armed)
+//   HI            presence beacon (every kBeaconIntervalTicks; one on first
+//                 game tick after mission entry)
 //   PING          RTT probe (t = send tick); peer answers PONG|origT
 //   PONG|origT    RTT answer; sender computes now - origT
 //   EXEC|msg|text display proof: MessagesGUI line at target tick
-// Hotkeys (fixed, PoC only): F9 status+hello burst, F10 queue EXEC msg at now+30, F11 ping
+// Hotkeys (fixed, PoC only): F9 status+hello burst, F10 queue EXEC msg at now+120, F11 ping, F12 manual HI
+
+static constexpr uint32_t kBeaconIntervalTicks = 90; /**/ // test 1.5s; release value is 300 (5s)
 
 class FeatureSync::FeatureSyncImpl
 {
@@ -200,18 +203,23 @@ private:
 			}
 			msg(std::format("FS: tick regressed {} -> {}", lastTick, tick));
 		}
+		bool missionFirstTick = (lastTick == 0 && tick > 0);
 		lastTick = tick;
 
-		if (tick - lastHelloTick >= 45)
+		if (missionFirstTick) // first tick after mission entry (or inject into running mission)
+		{
+			lastHelloTick = tick;
+			queueSend(wire("HI"));
+		}
+		else if (tick - lastHelloTick >= kBeaconIntervalTicks)
 		{
 			lastHelloTick = tick;
 			queueSend(wire("HI"));
 		}
 
-		for (auto it = peers.begin(); it != peers.end(); )
-		{
-			if (tick - it->second > 600) it = peers.erase(it); else ++it;
-		}
+		// peers are never evicted on silence - a stale beacon means HCM dead
+		// while the sim runs, which must keep blocking coverage. Removal on
+		// session-leave comes with the roster watch (mgr+0x70 user list).
 
 		for (auto it = pendingExec.begin(); it != pendingExec.end(); )
 		{
@@ -226,7 +234,7 @@ private:
 
 		pollKey(0, VK_F9, [this, tick]() {
 			msg(std::format("FS status: tick {} peers {} queued {} sendq {}", tick, peers.size(), pendingExec.size(), sendQueue.size())); /**/
-			for (auto& [tag, last] : peers) msg(std::format("  peer {:08x} seen {} ticks ago", tag, tick - last));
+			for (auto& [tag, last] : peers) msg(std::format("  peer {:08x} seen {} ticks ago{}", tag, tick - last, tick - last > 2 * kBeaconIntervalTicks ? " STALE" : ""));
 			queueSend(wire("HI"));
 			});
 		pollKey(1, VK_F10, [this, tick]() {
