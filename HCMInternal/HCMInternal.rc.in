@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 3,1,9,0
- PRODUCTVERSION 3,1,9,0
+ FILEVERSION @HCM_VERSION_COMMA@
+ PRODUCTVERSION @HCM_VERSION_COMMA@
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -87,11 +87,11 @@ END
 // WAVE
 //
 
-IDR_WAVE1               WAVE                    "lapua.wav"
+IDR_WAVE1               WAVE                    "@CMAKE_CURRENT_SOURCE_DIR@/lapua.wav"
 
-IDR_WAVE2               WAVE                    "GeigerClickA.wav"
+IDR_WAVE2               WAVE                    "@CMAKE_CURRENT_SOURCE_DIR@/GeigerClickA.wav"
 
-IDR_WAVE3               WAVE                    "GeigerClickB.wav"
+IDR_WAVE3               WAVE                    "@CMAKE_CURRENT_SOURCE_DIR@/GeigerClickB.wav"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -99,11 +99,11 @@ IDR_WAVE3               WAVE                    "GeigerClickB.wav"
 // DDS
 //
 
-IDR_DDS3                DDS                     "lapua2.dds"
+IDR_DDS3                DDS                     "@CMAKE_CURRENT_SOURCE_DIR@/lapua2.dds"
 
-IDR_DDS2                DDS                     "Waypoint3DReticle.dds"
+IDR_DDS2                DDS                     "@CMAKE_CURRENT_SOURCE_DIR@/Waypoint3DReticle.dds"
 
-IDR_DDS4                DDS                     "TriggerPatternedTexture.dds"
+IDR_DDS4                DDS                     "@CMAKE_CURRENT_SOURCE_DIR@/TriggerPatternedTexture.dds"
 
 #endif    // English (United Kingdom) resources
 /////////////////////////////////////////////////////////////////////////////
