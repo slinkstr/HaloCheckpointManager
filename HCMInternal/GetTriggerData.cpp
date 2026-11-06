@@ -251,13 +251,13 @@ public:
 					sectorPoints.push_back(*pPos);
 				}
 
+				if (sectorPoints.empty()) continue;
+
 				auto* pExtents = triggerDataStruct->field<SimpleMath::Vector3>(triggerDataFields::extents);
 				if (IsBadReadPtr(pExtents, sizeof(SimpleMath::Vector3))) throw HCMRuntimeException(std::format("Bad read address for pExtents at {}", (uintptr_t)pExtents));
 
 				auto* pZSink = triggerDataStruct->field<float>(triggerDataFields::zSink);
 				if (IsBadReadPtr(pZSink, sizeof(float))) throw HCMRuntimeException(std::format("Bad read address for pZSink at {}", (uintptr_t)pZSink));
-
-				if (sectorPoints.empty()) continue;
 
 				std::vector<SimpleMath::Vector3> sectorPointsBottom = sectorPoints;
 				std::vector<SimpleMath::Vector3> sectorPointsTop = sectorPoints;
@@ -269,13 +269,13 @@ public:
 
 				if constexpr (gameT == GameState::Value::Halo3ODST)
 				{
-					// ODST caps are fitted planes through authored corner heights: floor at authored z - z sink, ceiling at authored z + extents z.
+					// ODST uses z sink / z extent directly on each sector point's z coordinate.
 					std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [zSink = *pZSink](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, v.z - zSink }; });
 					std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [height = pExtents->z](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, v.z + height }; });
 				}
 				else
 				{
-					// Reach/H4 caps are flat slabs at bottomZ/topZ.
+					// Reach/H4 are right prisms using bottomZ/topZ.
 					std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [bottomZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, bottomZ }; });
 					std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [topZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, topZ }; });
 				}

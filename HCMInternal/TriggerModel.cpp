@@ -140,10 +140,6 @@ TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vect
 
 	size_t sectorPointCount = sectorPointsBottom.size();
 
-	// sector volumes are right prisms: the footprint is the polygon of sector point x/y's.
-	// The caller supplies the bottom and top rings already height-adjusted per title:
-	// flat slabs for Reach/H4, authored-z loft for ODST.
-
 	for (auto& sp : sectorPointsBottom)
 	{
 		vertices.push_back(sp);
