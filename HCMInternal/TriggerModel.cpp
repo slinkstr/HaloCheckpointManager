@@ -133,18 +133,16 @@ TriggerModel::TriggerModel(std::string triggerName, SimpleMath::Vector3 position
 
 
 // sector constructor
-TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vector3> sectorPointsBottom, float bottomZ, float topZ)
+TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vector3> sectorPointsBottom, std::vector<SimpleMath::Vector3> sectorPointsTop)
 	: label(triggerName),
 	m_isSectorType(true)
 {
 
 	size_t sectorPointCount = sectorPointsBottom.size();
 
-	// sector volumes are right prisms: the footprint is the polygon of sector point x/y's,
-	// with flat caps at bottomZ (lowest point z - z sink) and topZ (highest point z + extents z).
-	std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [bottomZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, bottomZ }; });
-	std::vector<SimpleMath::Vector3> sectorPointsTop = sectorPointsBottom; // copy
-	std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [topZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, topZ }; });
+	// sector volumes are right prisms: the footprint is the polygon of sector point x/y's.
+	// The caller supplies the bottom and top rings already height-adjusted per title:
+	// flat slabs for Reach/H4, authored-z loft for ODST.
 
 	for (auto& sp : sectorPointsBottom)
 	{

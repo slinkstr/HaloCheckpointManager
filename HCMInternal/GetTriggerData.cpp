@@ -259,10 +259,26 @@ public:
 
 				if (sectorPoints.empty()) continue;
 
+				std::vector<SimpleMath::Vector3> sectorPointsBottom = sectorPoints;
+				std::vector<SimpleMath::Vector3> sectorPointsTop = sectorPoints;
+
 				auto [minZPoint, maxZPoint] = std::ranges::minmax(sectorPoints, {}, &SimpleMath::Vector3::z);
 
 				float bottomZ = minZPoint.z - *pZSink;
 				float topZ = maxZPoint.z + pExtents->z;
+
+				if constexpr (gameT == GameState::Value::Halo3ODST)
+				{
+					// ODST caps are fitted planes through authored corner heights: floor at authored z - z sink, ceiling at authored z + extents z.
+					std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [zSink = *pZSink](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, v.z - zSink }; });
+					std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [height = pExtents->z](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, v.z + height }; });
+				}
+				else
+				{
+					// Reach/H4 caps are flat slabs at bottomZ/topZ.
+					std::ranges::transform(sectorPointsBottom, sectorPointsBottom.begin(), [bottomZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, bottomZ }; });
+					std::ranges::transform(sectorPointsTop, sectorPointsTop.begin(), [topZ](const auto& v) { return SimpleMath::Vector3{ v.x, v.y, topZ }; });
+				}
 
 				PLOG_DEBUG << "read sector Trigger Data at index " << triggerIndex << ", location " << std::hex << triggerDataStruct->currentBaseAddress << ":";
 				PLOG_DEBUG << "Name: " << name;
@@ -278,9 +294,8 @@ public:
 						name,
 						triggerIndex,
 						triggerIsBSPLambda(name),
-						sectorPoints,
-						bottomZ,
-						topZ
+						sectorPointsBottom,
+						sectorPointsTop
 					)));
 			}
 		}
