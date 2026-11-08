@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer3DImpl.h"
+#include "D3D11Hook.h"
 #include "directxtk\SimpleMath.h"
 #include "RenderTextHelper.h"
 #include "directxtk\GeometricPrimitive.h"
@@ -7,6 +8,101 @@
 #include "directxtk\Effects.h"
 
 using namespace SettingsEnums;
+
+/**/
+template<GameState::Value mGame>
+bool Renderer3DImpl<mGame>::prepareOcclusionDepth()
+{
+	ID3D11Texture2D* sourceTexture = D3D11Hook::occlusionProbeSelectDepthTex();
+	if (sourceTexture == nullptr)
+	{
+		return false;
+	}
+
+	DXGI_FORMAT dsvFormat;
+	switch (D3D11Hook::occlusionProbeDepthFormat())
+	{
+	case DXGI_FORMAT_R32G8X24_TYPELESS:
+		dsvFormat = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		break;
+	case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+	case DXGI_FORMAT_D32_FLOAT:
+		dsvFormat = D3D11Hook::occlusionProbeDepthFormat();
+		break;
+	case DXGI_FORMAT_R32_TYPELESS:
+		dsvFormat = DXGI_FORMAT_D32_FLOAT;
+		break;
+	case DXGI_FORMAT_R24G8_TYPELESS:
+		dsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		break;
+	case DXGI_FORMAT_D24_UNORM_S8_UINT:
+		dsvFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		break;
+	default:
+		return false;
+	}
+
+	D3D11_TEXTURE2D_DESC sourceDesc{};
+	sourceTexture->GetDesc(&sourceDesc);
+	if (sourceDesc.SampleDesc.Count != 1)
+	{
+		return false;
+	}
+
+	if (this->occlusionDepthCopy == nullptr
+		|| this->occlusionDepthCopyWidth != sourceDesc.Width
+		|| this->occlusionDepthCopyHeight != sourceDesc.Height
+		|| this->occlusionDepthCopyFormat != sourceDesc.Format)
+	{
+		this->occlusionDepthCopyView.Reset();
+		this->occlusionDepthCopy.Reset();
+
+		D3D11_TEXTURE2D_DESC copyDesc = sourceDesc;
+		copyDesc.Usage = D3D11_USAGE_DEFAULT;
+		copyDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		copyDesc.CPUAccessFlags = 0;
+		copyDesc.MiscFlags = 0;
+		if (FAILED(this->pDevice->CreateTexture2D(&copyDesc, nullptr, &this->occlusionDepthCopy)))
+		{
+			return false;
+		}
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC viewDesc{};
+		viewDesc.Format = dsvFormat;
+		viewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		viewDesc.Texture2D.MipSlice = 0;
+		if (FAILED(this->pDevice->CreateDepthStencilView(this->occlusionDepthCopy.Get(), &viewDesc, &this->occlusionDepthCopyView)))
+		{
+			return false;
+		}
+
+		this->occlusionDepthCopyWidth = sourceDesc.Width;
+		this->occlusionDepthCopyHeight = sourceDesc.Height;
+		this->occlusionDepthCopyFormat = sourceDesc.Format;
+		D3D11Hook::occlusionProbeIgnoreTexture(this->occlusionDepthCopy.Get());
+	}
+
+	const uint64_t frameCount = D3D11Hook::occlusionProbeFrameCount();
+	if (this->occlusionDepthCopyFrame != frameCount)
+	{
+		this->pDeviceContext->CopyResource(this->occlusionDepthCopy.Get(), sourceTexture);
+		this->occlusionDepthCopyFrame = frameCount;
+	}
+
+	ID3D11RenderTargetView* renderTargetView = this->pMainRenderTargetView;
+	this->pDeviceContext->OMSetRenderTargets(1, &renderTargetView, this->occlusionDepthCopyView.Get());
+	this->pDeviceContext->OMSetDepthStencilState(this->occlusionDepthState.Get(), 0);
+	return true;
+}
+
+template<GameState::Value mGame>
+void Renderer3DImpl<mGame>::restoreOverlayDepth()
+{
+	ID3D11RenderTargetView* renderTargetView = this->pMainRenderTargetView;
+	this->pDeviceContext->OMSetRenderTargets(1, &renderTargetView, this->m_depthStencilView.Get());
+	this->pDeviceContext->OMSetDepthStencilState(this->commonStates->DepthRead(), 0);
+}
+/**/
 
 template<GameState::Value mGame>
 void Renderer3DImpl<mGame>::setTexture(std::optional<TextureEnum> texture)
@@ -118,6 +214,8 @@ void  Renderer3DImpl<mGame>::drawTriangleCollection(const IModelTriangles* model
 	this->primitiveBatchEffect->SetColorAndAlpha(color);
 	this->primitiveBatchEffect->Apply(pDeviceContext);
 
+	/**/const bool occlusionDepthBound = prepareOcclusionDepth();/**/
+
 	primitiveDrawer->Begin();
 	primitiveDrawer->DrawIndexed(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, 
 		model->getTriangleIndices().data(), 
@@ -125,6 +223,8 @@ void  Renderer3DImpl<mGame>::drawTriangleCollection(const IModelTriangles* model
 		model->getTriangleVertices().data(), 
 		model->getTriangleVertices().size());
 	primitiveDrawer->End();
+
+	/**/if (occlusionDepthBound) { restoreOverlayDepth(); }/**/
 }
 
 template<GameState::Value mGame>
@@ -141,6 +241,8 @@ void  Renderer3DImpl<mGame>::drawEdgeCollection(const IModelEdges* model, const 
 	this->primitiveBatchEffect->SetColorAndAlpha(color);
 	this->primitiveBatchEffect->Apply(this->pDeviceContext);
 
+	/**/const bool occlusionDepthBound = prepareOcclusionDepth();/**/
+
 	primitiveDrawer->Begin();
 	primitiveDrawer->DrawIndexed(D3D10_PRIMITIVE_TOPOLOGY_LINELIST, 
 		model->getEdgeIndices().data(),
@@ -148,6 +250,8 @@ void  Renderer3DImpl<mGame>::drawEdgeCollection(const IModelEdges* model, const 
 		model->getEdgeVertices().data(),
 		model->getEdgeVertices().size());
 	primitiveDrawer->End();
+
+	/**/if (occlusionDepthBound) { restoreOverlayDepth(); }/**/
 }
 
 

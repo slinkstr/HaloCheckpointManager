@@ -36,6 +36,8 @@ public:
 	const std::string& getLabel() const { return label; }
 	const SimpleMath::Vector3& getCenter() const { return centerPosition; }
 	const SimpleMath::Vector3& getCorner() const { return cornerPosition; }
+	/**/SimpleMath::Vector3 getCornerNearestTo(const SimpleMath::Vector3& point) const;
+	/**/SimpleMath::Vector3 getFrontSurfacePoint(const SimpleMath::Vector3& forward) const;
 
 	// Only accurate for box type triggers
 	const DirectX::BoundingOrientedBox& getBoundingBox() const { return box; }

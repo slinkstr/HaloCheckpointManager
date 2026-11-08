@@ -239,6 +239,8 @@ private:
 				if (cameraFrustum.Intersects(triggerData.model.getBoundingBox()) == false)
 					continue;
 
+				/**/renderer->occlusionFeedDepthSample(triggerData.model);/**/
+
 
 
 				std::optional<long> ticksSinceLastCheck = std::nullopt;

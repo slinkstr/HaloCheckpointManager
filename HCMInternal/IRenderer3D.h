@@ -149,4 +149,10 @@ public:
 	/// <param name="model">Interface providing access to a VertexCollection and IndiceCollection of the edge vertices (in sets of 2).</param>
 	/// <param name="color">Float4 of the colour to be drawn.</param>
 	virtual void drawEdgeCollection(const IModelEdges* model, const SimpleMath::Vector4& color) = 0;
+
+	/**/
+	/// <summary>
+	/// Queues a trigger model for occlusion depth calibration sampling.
+	/// </summary>
+	virtual void occlusionFeedDepthSample(const TriggerModel& model) = 0;
 };

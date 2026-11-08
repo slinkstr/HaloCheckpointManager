@@ -131,6 +131,54 @@ TriggerModel::TriggerModel(std::string triggerName, SimpleMath::Vector3 position
 	this->cornerPosition = center - ((SimpleMath::Vector3)box.Extents / 2.f);
 }
 
+/**/
+SimpleMath::Vector3 TriggerModel::getCornerNearestTo(const SimpleMath::Vector3& point) const
+{
+	if (m_isSectorType)
+	{
+		return cornerPosition;
+	}
+
+	const auto rotation = SimpleMath::Matrix::CreateFromQuaternion(box.Orientation);
+	SimpleMath::Vector3 best = cornerPosition;
+	float bestDistanceSq = FLT_MAX;
+	for (int i = 0; i < 8; ++i)
+	{
+		const SimpleMath::Vector3 offset(
+			(i & 1) ? box.Extents.x : -box.Extents.x,
+			(i & 2) ? box.Extents.y : -box.Extents.y,
+			(i & 4) ? box.Extents.z : -box.Extents.z);
+		const auto corner = SimpleMath::Vector3::Transform(offset, rotation) + box.Center;
+		const float distanceSq = SimpleMath::Vector3::DistanceSquared(point, corner);
+		if (distanceSq < bestDistanceSq)
+		{
+			bestDistanceSq = distanceSq;
+			best = corner;
+		}
+	}
+	return best;
+}
+
+/**/
+SimpleMath::Vector3 TriggerModel::getFrontSurfacePoint(const SimpleMath::Vector3& forward) const
+{
+	if (m_isSectorType)
+	{
+		return cornerPosition;
+	}
+
+	const auto rotation = SimpleMath::Matrix::CreateFromQuaternion(box.Orientation);
+	const auto axisX = SimpleMath::Vector3::Transform(SimpleMath::Vector3::UnitX, rotation);
+	const auto axisY = SimpleMath::Vector3::Transform(SimpleMath::Vector3::UnitY, rotation);
+	const auto axisZ = SimpleMath::Vector3::Transform(SimpleMath::Vector3::UnitZ, rotation);
+
+	auto offset = axisX * (-box.Extents.x * (axisX.Dot(forward) >= 0.f ? 1.f : -1.f))
+		+ axisY * (-box.Extents.y * (axisY.Dot(forward) >= 0.f ? 1.f : -1.f))
+		+ axisZ * (-box.Extents.z * (axisZ.Dot(forward) >= 0.f ? 1.f : -1.f));
+	return box.Center + offset;
+}
+/**/
+
 
 // sector constructor
 TriggerModel::TriggerModel(std::string triggerName, std::vector<SimpleMath::Vector3> sectorPointsBottom, float height)

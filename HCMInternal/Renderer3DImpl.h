@@ -18,9 +18,19 @@
 #include "directxtk\GeometricPrimitive.h"
 #include "directxtk\Effects.h"
 #include <wrl/client.h>
+#include <deque>
 #include "TextureResource.h"
 
 using namespace Microsoft::WRL;
+
+/**/
+struct OcclusionDepthParams
+{
+	float slope;
+	float intercept;
+	D3D11_COMPARISON_FUNC depthFunc;
+};
+/**/
 
 // impl in .cpp
 template<GameState::Value mGame>
@@ -44,10 +54,14 @@ private:
 	bool haveShownError = false; // prevents updateGameCamera from spamming messages. resets to false on gamestate change.
 	SimpleMath::Vector3 cameraPosition;
 	SimpleMath::Vector3 cameraDirection;
+	/**/SimpleMath::Vector3 cameraForwardNormalized {0.f, 0.f, 1.f};
 	SimpleMath::Vector3 cameraUp;
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 	DirectX::SimpleMath::Matrix viewProjectionMatrix;
+	/**/
+	DirectX::SimpleMath::Matrix occlusionProjectionMatrix;
+	/**/DirectX::SimpleMath::Matrix occlusionViewProjectionMatrix;
 	SimpleMath::Vector2 lastScreenSize {0, 0};
 	SimpleMath::Vector2 screenSize;
 	SimpleMath::Vector2 screenCenter;
@@ -84,6 +98,41 @@ private:
 	ComPtr<ID3D11Texture2D> depthStencil;
 	ComPtr<ID3D11DepthStencilView> m_depthStencilView;
 	ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+	/**/
+	ComPtr<ID3D11Texture2D> occlusionDepthCopy;
+	/**/ComPtr<ID3D11DepthStencilView> occlusionDepthCopyView;
+	/**/ComPtr<ID3D11DepthStencilState> occlusionDepthState;
+	/**/UINT occlusionDepthCopyWidth = 0;
+	/**/UINT occlusionDepthCopyHeight = 0;
+	/**/DXGI_FORMAT occlusionDepthCopyFormat = DXGI_FORMAT_UNKNOWN;
+	/**/uint64_t occlusionDepthCopyFrame = 0;
+	/**/bool prepareOcclusionDepth();
+	/**/void restoreOverlayDepth();
+
+	/**/
+	struct OcclusionPendingSample { SimpleMath::Vector3 worldPosition; };
+	/**/struct OcclusionDepthSample { float viewDepth; float storedDepth; float screenU; float screenV; ID3D11Texture2D* sourceTexture; };
+	/**/std::deque<OcclusionPendingSample> occlusionPendingSamples;
+	/**/std::deque<OcclusionDepthSample> occlusionDepthSamples;
+	/**/uint32_t occlusionFeedRng = 0x9e3779b9u;
+	/**/float occlusionCalibIntercept = 0.1f;
+	/**/float occlusionCalibSlope = 0.f;
+	/**/bool occlusionCalibValid = false;
+	/**/int occlusionSampleRejectReason = 0;
+	/**/void occlusionUpdateCalibration();
+	/**/static constexpr OcclusionDepthParams occlusionDepthParams()
+	{
+		if constexpr (mGame == GameState::Value::Halo1)
+		{
+			return { -7.62939e-06f, 0.00781256f, D3D11_COMPARISON_GREATER_EQUAL };
+		}
+		else if constexpr (mGame == GameState::Value::Halo2 || mGame == GameState::Value::Halo2MP)
+		{
+			return { 0.076f, 0.46f, D3D11_COMPARISON_GREATER_EQUAL };
+		}
+		return { -7.6294e-07f, 0.00781251f, D3D11_COMPARISON_GREATER_EQUAL };
+	}
 
 
 	void initialise(); // run on first render frame to init spriteBatch & common states
@@ -125,6 +174,9 @@ public:
 
 	virtual void drawEdge(const SimpleMath::Vector3& edgeStart, const SimpleMath::Vector3& edgeEnd, const SimpleMath::Vector4& color) override;
 	virtual void drawEdgeCollection(const IModelEdges* model, const SimpleMath::Vector4& color) override;
+
+	/**/
+	virtual void occlusionFeedDepthSample(const TriggerModel& model) override;
 
 	//virtual void renderTriangle(const std::array<SimpleMath::Vector3, 3>& vertices, const SimpleMath::Vector4& color) override;
 	//virtual void renderTriggerModel(const TriggerModel& model, const SimpleMath::Vector4& triggerColor, const SettingsEnums::TriggerRenderStyle renderStyle, const SettingsEnums::TriggerInteriorStyle interiorStyle, const SettingsEnums::TriggerLabelStyle labelStyle, const float labelScale) override;

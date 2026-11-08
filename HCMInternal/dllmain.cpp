@@ -6,6 +6,7 @@
 
 #include "App.h"
 #include "MCCInitialisationCheck.h"
+#include "D3D11Hook.h"
 
 
 // Main Execution Loop
@@ -21,6 +22,7 @@ void RealMain(HMODULE dllHandle)
 DWORD WINAPI MainThread(HMODULE hDLL)
 {
 
+    D3D11Hook::installOcclusionExportHooks();
 
     auto mccIsInitialised = MCCInitialisationCheck(hDLL);
     while (mccIsInitialised.has_value() && mccIsInitialised.value() == false)

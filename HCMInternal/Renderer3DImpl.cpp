@@ -3,6 +3,7 @@
 #include "PointerDataStore.h"
 #include "TextureFactory.h"
 #include "SettingsStateAndEvents.h"
+#include "D3D11Hook.h"
 /*
 
 See:
@@ -71,6 +72,18 @@ for the rest of the implementation
 	 if (SUCCEEDED(hr) == false)
 		 throw HCMInitException(std::format("Failed to create depth stencil state, error code: {}", hr));
 
+	/**/
+	D3D11_DEPTH_STENCIL_DESC occlusionDepthStateDesc{};
+	occlusionDepthStateDesc.DepthEnable = TRUE;
+	occlusionDepthStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	occlusionDepthStateDesc.DepthFunc = occlusionDepthParams().depthFunc;
+	occlusionDepthStateDesc.StencilEnable = FALSE;
+	if (FAILED(this->pDevice->CreateDepthStencilState(&occlusionDepthStateDesc, &this->occlusionDepthState)))
+	{
+		throw HCMInitException("Failed to create occlusion depth stencil state");
+	}
+	/**/
+
 
 
 	 void const* shaderByteCode;
@@ -132,6 +145,14 @@ for the rest of the implementation
 	 PLOG_DEBUG << "updating Renderer3DImpl vertical FOV cache for " << ((GameState)mGame).toString();
 	 pVerticalFOVCached = nullptr;
 	 haveShownError = false;
+
+	/**/
+	this->occlusionPendingSamples.clear();
+	this->occlusionDepthSamples.clear();
+	this->occlusionCalibValid = false;
+	this->occlusionCalibIntercept = 0.1f;
+	this->occlusionCalibSlope = 0.f;
+	/**/
 	 try
 	 {
 		 lockOrThrow(mccStateHookWeak, mccStateHook);
@@ -205,6 +226,10 @@ https://learn.microsoft.com/en-us/windows/uwp/gaming/using-depth-and-effects-on-
 	 );
 
 	 PLOG_DEBUG << "hr2: " << hr2;
+
+	/**/
+	D3D11Hook::occlusionProbeIgnoreTexture(this->depthStencil.Get());
+	/**/
  }
 
 
