@@ -495,11 +495,12 @@
 	</PropertyGroup>
 	
 	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-	  <Exec Command="powershell -ExecutionPolicy RemoteSigned $(SolutionDir)updateVersionInfo.ps1 -SolutionDir $(SolutionDir) -VersionInfo $(VersionPrefix) || set errorlevel=0&#xD;&#xA; " />
+	  <Exec Command="powershell -ExecutionPolicy Bypass &quot;$(RepoRoot)updateVersionInfo.ps1&quot; -SolutionDir '$(RepoRoot)' -VersionInfo $(VersionPrefix)" />
 	</Target>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-	  <Exec Command="copy $(TargetDir)$(MSBuildProjectName).exe $(TargetDir)HaloCheckpointManager.exe /Y || set errorlevel=0 &#xD;&#xA;copy $(ProjectDir)ExternalPointerData.xml  $(OutDir)ExternalPointerData.xml /Y || set errorlevel=0" />
+	  <Copy SourceFiles="$(TargetDir)$(MSBuildProjectName).exe" DestinationFiles="$(TargetDir)HaloCheckpointManager.exe" />
+	  <Copy SourceFiles="$(ProjectDir)ExternalPointerData.xml" DestinationFiles="$(TargetDir)ExternalPointerData.xml" />
 	</Target>
 
 </Project>

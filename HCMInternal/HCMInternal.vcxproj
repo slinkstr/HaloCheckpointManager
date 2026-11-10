@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\</OutDir>
+    <OutDir>$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\</OutDir>
     <LinkIncremental>false</LinkIncremental>
     <CustomBuildBeforeTargets>
     </CustomBuildBeforeTargets>
@@ -79,7 +79,7 @@
     </CustomBuildAfterTargets>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\</OutDir>
+    <OutDir>$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\</OutDir>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgUseStatic>true</VcpkgUseStatic>
@@ -160,11 +160,9 @@
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>set /P "_VSdmy=$(OutputPath.Replace('"','').trim().Replace('\','\\').trim().trimEnd('\'))" &lt;nul&gt;; "$(SolutionDir)OutputPath.vsmacro" ||(call,)
-
-IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
-	"C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMInternal.pdb"
-                   "C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMSpeedhack.pdb"
+      <Command>IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
+	"C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMInternal.pdb"
+                   "C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMSpeedhack.pdb"
 )</Command>
     </PreBuildEvent>
     <PreLinkEvent>
@@ -175,13 +173,6 @@ IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
       <Command>
       </Command>
     </PostBuildEvent>
-    <CustomBuildStep>
-      <Command>xcopy /y $(ProjectDir)InternalPointerData.xml  $(OutDir)InternalPointerData.xml || set errorlevel=0</Command>
-    </CustomBuildStep>
-    <CustomBuildStep>
-      <Message>Copying internal pointer data</Message>
-      <Outputs>nonexistentfiletoforcebuildeventtoalwaysrun</Outputs>
-    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -216,11 +207,9 @@ IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
       </IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
-      <Command>set /P "_VSdmy=$(OutputPath.Replace('"','').trim().Replace('\','\\').trim().trimEnd('\'))" &lt;nul&gt;; "$(SolutionDir)OutputPath.vsmacro" ||(call,)
-
-IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
-	"C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMInternal.pdb"
-                   "C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(SolutionDir)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMSpeedhack.pdb"
+      <Command>IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
+	"C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMInternal.pdb"
+                   "C:\Program Files\LockHunter\LockHunter.exe" /silent /unlock  "$(RepoRoot)HCMExternal\bin\$(Platform)\$(Configuration)\net7.0-windows\HCMSpeedhack.pdb"
 )
 </Command>
     </PreBuildEvent>
@@ -802,4 +791,7 @@ IF EXIST "C:\Program Files\LockHunter\LockHunter.exe"  (
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyPointerData" AfterTargets="Build" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Copy SourceFiles="$(ProjectDir)InternalPointerData.xml" DestinationFiles="$(TargetDir)InternalPointerData.xml" />
+  </Target>
 </Project>
