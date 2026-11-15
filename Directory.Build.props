@@ -1,7 +1,6 @@
 ﻿<Project>
 	<PropertyGroup>
-		<OutputPath_Global>__UNDEFINED__</OutputPath_Global>
-		<OutputPath_Global Condition="Exists('$(SolutionDir)OutputPath.vsmacro')">"$([System.IO.File]::ReadAllText('$(SolutionDir)OutputPath.vsmacro').trim())"</OutputPath_Global>
+		<RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
 		<VersionPrefix>3.1.9.0</VersionPrefix>
 </PropertyGroup>
 </Project>
