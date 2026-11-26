@@ -247,6 +247,12 @@
     <ClInclude Include="D3D11Hook.h">
       <Filter>Services\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="DepthCapture.h">
+      <Filter>Services\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="DepthConstantScan.h">
+      <Filter>Services\Rendering</Filter>
+    </ClInclude>
     <ClInclude Include="ImGuiManager.h">
       <Filter>Services\Rendering</Filter>
     </ClInclude>
@@ -1159,6 +1165,12 @@
       <Filter>Services\GUI</Filter>
     </ClCompile>
     <ClCompile Include="D3D11Hook.cpp">
+      <Filter>Services\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthCapture.cpp">
+      <Filter>Services\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthConstantScan.cpp">
       <Filter>Services\Rendering</Filter>
     </ClCompile>
     <ClCompile Include="ImGuiManager.cpp">

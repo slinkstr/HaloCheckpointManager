@@ -22,6 +22,14 @@
 
 using namespace Microsoft::WRL;
 
+struct OcclusionSource
+{
+	ComPtr<ID3D11Texture2D> texture;
+	ComPtr<ID3D11Texture2D> nearestOf;
+	float                   slope;
+	float                   intercept;
+};
+
 // impl in .cpp
 template<GameState::Value mGame>
 class Renderer3DImpl : public IRenderer3D
@@ -57,6 +65,7 @@ private:
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 	DirectX::SimpleMath::Matrix viewProjectionMatrix;
+	DirectX::SimpleMath::Matrix occlusionViewProjectionMatrix;
 	SimpleMath::Vector2 lastScreenSize {0, 0};
 	SimpleMath::Vector2 screenSize;
 	SimpleMath::Vector2 screenCenter;
@@ -96,6 +105,23 @@ private:
 	ComPtr<ID3D11Texture2D> depthStencil;
 	ComPtr<ID3D11DepthStencilView> m_depthStencilView;
 	ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+	ComPtr<ID3D11Texture2D>         occlusionDepthCopy;
+	ComPtr<ID3D11DepthStencilView>  occlusionDepthCopyView;
+	ComPtr<ID3D11DepthStencilState> occlusionDepthState;
+	D3D11_TEXTURE2D_DESC            occlusionDepthCopyDesc {};
+	ComPtr<ID3D11DepthStencilState> occlusionMergeDepthState;
+	ComPtr<ID3D11VertexShader>      occlusionMergeVertexShader;
+	ComPtr<ID3D11PixelShader>       occlusionMergePixelShader;
+	std::array<ComPtr<ID3D11ShaderResourceView>, 2> occlusionMergeViews;
+	std::array<ID3D11Texture2D*, 2>                 occlusionMergeViewTextures {};
+	std::optional<OcclusionSource>  occlusionSource;
+	std::optional<OcclusionSource> selectOcclusionSource();
+	void createOcclusionMergeResources();
+	bool refreshOcclusionDepth();
+	bool mergeOcclusionDepth(ID3D11Texture2D* first, ID3D11Texture2D* second);
+	bool prepareOcclusionDepth();
+	void restoreOverlayDepth();
 
 
 	void initialise(); // run on first render frame to init spriteBatch & common states

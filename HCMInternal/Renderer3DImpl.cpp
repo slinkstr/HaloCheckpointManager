@@ -83,6 +83,18 @@ for the rest of the implementation
 	 if (SUCCEEDED(hr) == false)
 		 throw HCMInitException(std::format("Failed to create depth stencil state, error code: {}", hr));
 
+	D3D11_DEPTH_STENCIL_DESC occlusionDepthStateDesc {};
+	occlusionDepthStateDesc.DepthEnable    = TRUE;
+	occlusionDepthStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	occlusionDepthStateDesc.DepthFunc      = D3D11_COMPARISON_GREATER_EQUAL;
+	occlusionDepthStateDesc.StencilEnable  = FALSE;
+	hr = this->pDevice->CreateDepthStencilState(&occlusionDepthStateDesc, &this->occlusionDepthState);
+	if (FAILED(hr))
+	{
+		throw HCMInitException(std::format("Failed to create occlusion depth stencil state, error code: {}", hr));
+	}
+	createOcclusionMergeResources();
+
 
 
 	 void const* shaderByteCode;

@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "D3D11Hook.h"
+#include "DepthCapture.h"
+#include "DepthConstantScan.h"
 
 #include "GlobalKill.h"
 #include <dxgi.h>
@@ -364,6 +366,9 @@ HRESULT D3D11Hook::newDX11Present(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 		}
 
 	}
+	DepthCapture::onPresentBegin(pSwapChain, d3d->m_pDevice, d3d->m_pDeviceContext);
+	DepthConstantScan::poll();
+
 	LOG_ONCE(PLOG_VERBOSE << "invoking mandatoryPresentHookEvent callback");
 	// Invoke the callback
 
@@ -401,6 +406,8 @@ HRESULT D3D11Hook::newDX11Present(IDXGISwapChain* pSwapChain, UINT SyncInterval,
 	// Call original present
 
 	auto hr = d3d->presentHook.stdcall<HRESULT>(pSwapChain, SyncInterval, Flags);
+
+	DepthCapture::onPresentEnd();
 
 	return hr;
 

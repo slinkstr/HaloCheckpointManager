@@ -487,6 +487,8 @@
     <ClInclude Include="ControlDefs.h" />
     <ClInclude Include="CustomExceptions.h" />
     <ClInclude Include="D3D11Hook.h" />
+    <ClInclude Include="DepthCapture.h" />
+    <ClInclude Include="DepthConstantScan.h" />
     <ClInclude Include="DIContainer.h" />
     <ClInclude Include="DumpCheckpoint.h" />
     <ClInclude Include="DumpCore.h" />
@@ -688,6 +690,8 @@
     <ClCompile Include="UserCameraInputReader.cpp" />
     <ClCompile Include="Conduit_ITCFont.cpp" />
     <ClCompile Include="D3D11Hook.cpp" />
+    <ClCompile Include="DepthCapture.cpp" />
+    <ClCompile Include="DepthConstantScan.cpp" />
     <ClCompile Include="DisplayPlayerInfo.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="DynamicStruct.cpp" />

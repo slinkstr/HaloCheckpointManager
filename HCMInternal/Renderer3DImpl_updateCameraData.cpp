@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Renderer3DImpl.h"
+#include "DepthCapture.h"
 #include "directxtk\SimpleMath.h"
 
 
@@ -83,6 +84,19 @@ bool Renderer3DImpl<mGame>::updateCameraData(ID3D11Device* pDevice, ID3D11Device
 		auto lookAt = this->cameraPosition + this->cameraDirection;
 		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->cameraPosition, lookAt, this->cameraUp);
 		this->viewProjectionMatrix = (viewMatrix * projectionMatrix);
+
+		this->occlusionSource = selectOcclusionSource();
+		if (this->occlusionSource)
+		{
+			const float occlusionYScale = 1.f / std::tan(verticalFov * 0.5f);
+			const float occlusionXScale = occlusionYScale / aspectRatio;
+			const DirectX::SimpleMath::Matrix occlusionProjectionMatrix(
+				occlusionXScale, 0.f,             0.f,                               0.f,
+				0.f,             occlusionYScale, 0.f,                               0.f,
+				0.f,             0.f,             -this->occlusionSource->slope,     -1.f,
+				0.f,             0.f,             this->occlusionSource->intercept,  0.f);
+			this->occlusionViewProjectionMatrix = this->viewMatrix * occlusionProjectionMatrix;
+		}
 		this->pDevice = pDevice;
 		this->pDeviceContext = pDeviceContext;
 		this->pMainRenderTargetView = pMainRenderTargetView;
@@ -132,7 +146,11 @@ bool Renderer3DImpl<mGame>::updateCameraData(ID3D11Device* pDevice, ID3D11Device
 
 
 
-		this->primitiveBatchEffect->SetProjection(this->viewProjectionMatrix);
+		if (this->occlusionSource && !refreshOcclusionDepth())
+		{
+			this->occlusionSource.reset();
+		}
+		this->primitiveBatchEffect->SetProjection(this->occlusionSource ? this->occlusionViewProjectionMatrix : this->viewProjectionMatrix);
 		this->primitiveBatchEffect->Apply(this->pDeviceContext);
 
 
@@ -172,6 +190,83 @@ bool Renderer3DImpl<mGame>::updateCameraData(ID3D11Device* pDevice, ID3D11Device
 	}
 }
 
+
+namespace
+{
+	struct DepthPlanes
+	{
+		float nearPlane;
+		float farPlane;
+		float engineUnitsPerGameUnit;
+
+		OcclusionSource sourceFrom(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture, Microsoft::WRL::ComPtr<ID3D11Texture2D> nearestOf = nullptr) const
+		{
+			return OcclusionSource { std::move(texture), std::move(nearestOf), -nearPlane / farPlane, nearPlane / engineUnitsPerGameUnit };
+		}
+	};
+
+	// Reversed-Z: stored depth = (near / viewDepth) - (near / far), viewDepth in game units.
+	// The anniversary renderers work in meters, 3.048 m per game unit.
+	// Sources are the game DLLs as shipped (MCC 1.3528): initialized globals (near, far adjacent) or the immediates of the
+	// instruction pair that writes near and far into the camera.
+	// Halo 2 anniversary also has a 10000 m far plane in its camera at halo2.dll+0xe427e8, but the depth buffer fits 750000 m.
+	constexpr float kMetersPerGameUnit = 3.048f;
+	constexpr DepthPlanes kHalo1ClassicPlanes     { 0.0078125f, 1024.f,   1.f                }; // halo1.dll .rdata +0x188b120
+	constexpr DepthPlanes kHalo1AnniversaryPlanes { 0.025f,     10000.f,  kMetersPerGameUnit }; // halo1.dll .text +0x45312c (mov [rbx], 0.025f; mov [rbx+4], 10000.f)
+	constexpr DepthPlanes kHalo2ClassicPlanes     { 0.06f,      1024.f,   1.f                }; // halo2.dll .data +0xe19200
+	constexpr DepthPlanes kHalo2AnniversaryPlanes { 0.1f,       750000.f, kMetersPerGameUnit }; // halo2.dll .text +0x2ddd01 (mov [rcx+8], 0.1f; mov [rcx+0xc], 750000.f)
+	constexpr DepthPlanes kHalo3Planes            { 0.0078125f, 10240.f,  1.f                }; // halo3.dll .data +0x8ac414 (far, near), halo3odst.dll .data +0x8f02b0 (far, near), haloreach.dll .data +0xb43a88, halo4.dll .data +0xe84600
+}
+
+// Halo 2 classic clears its depth buffer between the world pass and the viewmodel pass, so the world is only
+// available as a pre-clear snapshot; the viewmodel is merged back in from the end-of-frame contents.
+template<GameState::Value mGame>
+std::optional<OcclusionSource> Renderer3DImpl<mGame>::selectOcclusionSource()
+{
+	const bool anniversary = anniversaryGraphicsActive();
+	DepthCapture::watchPreClear(mGame == GameState::Value::Halo2 && !anniversary ? DXGI_FORMAT_D32_FLOAT_S8X24_UINT : DXGI_FORMAT_UNKNOWN);
+	if constexpr (mGame == GameState::Value::Halo1)
+	{
+		auto depth = DepthCapture::lastFrameDepth(DXGI_FORMAT_R32G8X24_TYPELESS);
+		if (depth.fullResolution == nullptr)
+		{
+			return std::nullopt;
+		}
+		const DepthPlanes& planes = anniversary ? kHalo1AnniversaryPlanes : kHalo1ClassicPlanes;
+		return planes.sourceFrom(std::move(depth.fullResolution));
+	}
+	else if constexpr (mGame == GameState::Value::Halo2)
+	{
+		if (anniversary)
+		{
+			auto depth = DepthCapture::lastFrameDepth(DXGI_FORMAT_R32G8X24_TYPELESS);
+			if (depth.fullResolution == nullptr)
+			{
+				return std::nullopt;
+			}
+			return kHalo2AnniversaryPlanes.sourceFrom(std::move(depth.fullResolution));
+		}
+		auto classic = DepthCapture::lastFrameDepth(DXGI_FORMAT_D32_FLOAT_S8X24_UINT);
+		if (classic.lastPreClear == nullptr || classic.endOfFrame == nullptr)
+		{
+			return std::nullopt;
+		}
+		return kHalo2ClassicPlanes.sourceFrom(std::move(classic.lastPreClear), std::move(classic.endOfFrame));
+	}
+	else if constexpr (mGame == GameState::Value::HaloReach || mGame == GameState::Value::Halo3 || mGame == GameState::Value::Halo3ODST || mGame == GameState::Value::Halo4)
+	{
+		auto depth = DepthCapture::lastFrameDepth(DXGI_FORMAT_R32G8X24_TYPELESS);
+		if (depth.fullResolution == nullptr)
+		{
+			return std::nullopt;
+		}
+		return kHalo3Planes.sourceFrom(std::move(depth.fullResolution));
+	}
+	else
+	{
+		return std::nullopt;
+	}
+}
 
 template<GameState::Value mGame>
 bool Renderer3DImpl<mGame>::anniversaryGraphicsActive()
