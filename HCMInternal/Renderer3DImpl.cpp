@@ -37,6 +37,18 @@ for the rest of the implementation
 		 PLOG_ERROR << "Could not resolve verticalFOVPointer, that's okay we'll just use some bad math to guess it. Error: " << ex.what();
 	 }
 
+	 if constexpr (mGame == GameState::Value::Halo1 || mGame == GameState::Value::Halo2)
+	 {
+		 try
+		 {
+			 anniversaryGraphicsPointer = dicon.Resolve<PointerDataStore>().lock()->getData<std::shared_ptr<MultilevelPointer>>(nameof(anniversaryGraphicsPointer), game);
+		 }
+		 catch (HCMInitException ex)
+		 {
+			 PLOG_ERROR << "Could not resolve anniversaryGraphicsPointer, 3D overlays will lag the camera by a frame in anniversary graphics. Error: " << ex.what();
+		 }
+	 }
+
 	 // update vfov cache if already in game
 	 onGameStateChanged(mccStateHookWeak.lock()->getCurrentMCCState());
  }
@@ -131,6 +143,8 @@ for the rest of the implementation
  {
 	 PLOG_DEBUG << "updating Renderer3DImpl vertical FOV cache for " << ((GameState)mGame).toString();
 	 pVerticalFOVCached = nullptr;
+	 pAnniversaryGraphicsCached = nullptr;
+	 previousCameraPose.reset();
 	 haveShownError = false;
 	 try
 	 {
@@ -145,6 +159,18 @@ for the rest of the implementation
 			 else
 			 {
 				 PLOG_ERROR << "error caching vertical FOV pointer: " << MultilevelPointer::GetLastError();
+			 }
+		 }
+		 if (mccStateHook->isGameCurrentlyPlaying(mGame) && anniversaryGraphicsPointer.has_value())
+		 {
+			 uintptr_t ptr;
+			 if (anniversaryGraphicsPointer.value()->resolve(&ptr))
+			 {
+				 pAnniversaryGraphicsCached = (int32_t*)ptr;
+			 }
+			 else
+			 {
+				 PLOG_ERROR << "error caching anniversary graphics pointer: " << MultilevelPointer::GetLastError();
 			 }
 		 }
 	 }

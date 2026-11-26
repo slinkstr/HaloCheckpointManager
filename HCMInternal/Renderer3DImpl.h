@@ -45,6 +45,15 @@ private:
 	SimpleMath::Vector3 cameraPosition;
 	SimpleMath::Vector3 cameraDirection;
 	SimpleMath::Vector3 cameraUp;
+
+	struct CameraPose
+	{
+		SimpleMath::Vector3 position;
+		SimpleMath::Vector3 direction;
+		SimpleMath::Vector3 up;
+	};
+	std::optional<CameraPose> previousCameraPose;
+	bool anniversaryGraphicsActive();
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 	DirectX::SimpleMath::Matrix viewProjectionMatrix;
@@ -65,6 +74,9 @@ private:
 
 	std::optional<std::shared_ptr<MultilevelPointer>> verticalFOVPointer;
 	float* pVerticalFOVCached;
+
+	std::optional<std::shared_ptr<MultilevelPointer>> anniversaryGraphicsPointer;
+	int32_t* pAnniversaryGraphicsCached = nullptr;
 
 	// just for caching verticalFOV, if we have it
 	ScopedCallback<eventpp::CallbackList<void(const MCCState&)>> mGameStateChangedCallback;

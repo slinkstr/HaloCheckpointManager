@@ -10285,6 +10285,21 @@
 	</VersionedEntry>
 
 
+	<VersionedEntry Name="anniversaryGraphicsPointer" Type="MultilevelPointer::ModuleOffset">
+		<Version Version="1.3528.0.0" Game="Halo1">
+			<Module>halo1.dll</Module>
+			<Offsets>
+				<Offset>0x1C5354C</Offset>
+			</Offsets>
+		</Version>
+		<Version Version="1.3528.0.0" Game="Halo2">
+			<Module>halo2.dll</Module>
+			<Offsets>
+				<Offset>0xE21278</Offset>
+			</Offsets>
+		</Version>
+	</VersionedEntry>
+
 	<VersionedEntry Name="verticalFOVPointer" Type="MultilevelPointer::ModuleOffset">
 		<Version Version="1.3385.0.0" Game="Halo1">
 			<Module>halo1.dll</Module>

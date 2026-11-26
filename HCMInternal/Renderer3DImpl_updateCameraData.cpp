@@ -47,6 +47,17 @@ bool Renderer3DImpl<mGame>::updateCameraData(ID3D11Device* pDevice, ID3D11Device
 		this->cameraDirection = *cameraData.lookDirForward;
 		this->cameraUp = *cameraData.lookDirUp;
 
+		// The anniversary renderers present each frame drawn with the camera from the previous game update,
+		// so the overlay has to use that camera too or it runs ahead of the world during camera motion.
+		const CameraPose currentCameraPose { this->cameraPosition, this->cameraDirection, this->cameraUp };
+		if (this->previousCameraPose.has_value() && anniversaryGraphicsActive())
+		{
+			this->cameraPosition  = this->previousCameraPose->position;
+			this->cameraDirection = this->previousCameraPose->direction;
+			this->cameraUp        = this->previousCameraPose->up;
+		}
+		this->previousCameraPose = currentCameraPose;
+
 
 		float aspectRatio = screenSizeIn.x / screenSizeIn.y; // aspect ratio is width div height!
 
@@ -161,6 +172,20 @@ bool Renderer3DImpl<mGame>::updateCameraData(ID3D11Device* pDevice, ID3D11Device
 	}
 }
 
+
+template<GameState::Value mGame>
+bool Renderer3DImpl<mGame>::anniversaryGraphicsActive()
+{
+	if (this->pAnniversaryGraphicsCached == nullptr)
+	{
+		return false;
+	}
+	if (IsBadReadPtr(this->pAnniversaryGraphicsCached, sizeof(int32_t)))
+	{
+		throw HCMRuntimeException(std::format("Bad pAnniversaryGraphicsCached read at: {}", (uintptr_t)this->pAnniversaryGraphicsCached));
+	}
+	return *this->pAnniversaryGraphicsCached != 0;
+}
 
 // explicit template instantiation
 template class Renderer3DImpl<GameState::Value::Halo1>;
